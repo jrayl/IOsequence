@@ -315,6 +315,6 @@ end
 
 B = dropdims((1/(J*M)) * sum(cov, dims=3); dims=3) # meat of sandwich 
 V = (inv(dg_dθ' * W * dg_dθ)) * (dg_dθ' * W * B * W * dg_dθ) * (inv(dg_dθ' * W * dg_dθ))
-se = hcat(sqrt(V[1,1]), sqrt(V[2,2]), sqrt(V[3,3]), sqrt(V[4,4]), sqrt(V[5,5]))
+se = (1/ sqrt(J*M)) * hcat(sqrt(V[1,1]), sqrt(V[2,2]), sqrt(V[3,3]), sqrt(V[4,4]), sqrt(V[5,5]))
 
 print(se)
