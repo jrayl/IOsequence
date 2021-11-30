@@ -9,6 +9,7 @@ cd("/home/jmr9694/IO1")
 using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots, JLD
 
 prod3 = matread("100markets3products.mat")
+#prod3 = matread("Simulation Data/100markets3products.mat")
 
 M = 100
 J = 3
@@ -75,9 +76,9 @@ function ds_dp(θ) # derivative of shares wrt prices
     ds_dp = ones(J,J,M)
     for i in 1:J 
         for k in 1:J 
-            ds_dp[i,k,:] = (-1/R) * sum( share_R[i,:,:] .* share_R[k,:,:] .* σ .* ν[i,:,:], dims=3) 
+            ds_dp[i,k,:] = (-1/R) * sum( share_R[i,:,:] .* share_R[k,:,:] .* σ .* ν[i,:,:], dims=2) 
             if i == k 
-                ds_dp[i,k,:] = (1/R) * sum( (alpha + σ * ν[i,:,:]) .* (share_R[i,:,:] .-1) , dims=3)
+                ds_dp[i,k,:] = (1/R) * sum( (alph .+ σ * ν[i,:,:]) .* share_R[i,:,:] .* (1 .-share_R[i,:,:] ) , dims=2)
             end
         end
     end
@@ -92,10 +93,11 @@ end
 
 # In oligopoly, only elements on diagonal of Δ are non-zero
 est = load("est.jld")["est"]
-(ds_dp, shares) = ds_dp(est)
+est = ones(J*M+Q+1)
+(dsdp, shares) = ds_dp(est)
 Δ = zeros(J,J,M)
 for i in 1:J 
-    Δ[i,i,:] = -1 .* ds_dp[i,i,:]
+    Δ[i,i,:] = -1 .* dsdp[i,i,:]
 end
 
 # Compute marginal costs 
@@ -105,7 +107,7 @@ for i in 1:M
 end
 
 # Compare with true marginal costs 
-mc_true = reshape(2 + w3 + z3, J, M)
+mc_true = reshape(2 .+ w3 + z3 + eta3, J, M)
 
 ## ======================
 
@@ -126,7 +128,7 @@ function mkt_share(θ) # constraint 1: market shares
     
 end
 
-function moments(θ) # constraint 2: moments 
+function pc_moments(θ) # constraint 2: moments under perfect competition 
 
     δ = θ[1:J*M]
     η = θ[J*M + 1: J*M + Q]
@@ -134,9 +136,32 @@ function moments(θ) # constraint 2: moments
     # Concentrate out alpha, beta with TSLS
     xi = (I - X * inv(X' * P_z * X) * (X' * P_z)) * δ
 
-    moms = xi .* Z
+    mom_1 = xi .* Z
+
+    # Supply moment 
+    mom_2 = (p_vec .- γ_0 .- γ_1 * w3 .- γ_2 * z3 ) .* Z 
+
+    moms = hcat(mom_1, mom_2)
 
     return moms
+
+end
+
+function oli_moments(θ) # constraint 2: moments under oligopoly 
+
+    δ = θ[1:J*M]
+    η = θ[J*M + 1: J*M + Q]
+
+    # Concentrate out alpha, beta with TSLS
+    xi = (I - X * inv(X' * P_z * X) * (X' * P_z)) * δ
+
+    mom_1 = xi .* Z
+
+
+
+end
+
+function coll_moments(θ) # constraint 2: moments under perfect collusion
 
 end
 
