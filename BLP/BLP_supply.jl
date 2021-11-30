@@ -6,7 +6,7 @@
 #cd("/Users/johannarayl/Dropbox/Second Year/IO 1/PS4")
 cd("/home/jmr9694/IO1")
 
-using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots
+using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots, JLD
 
 prod3 = matread("100markets3products.mat")
 
@@ -23,29 +23,6 @@ xi_all3 = prod3["xi_all"]
 alphas3 = prod3["alphas"]
 eta3 = prod3["eta"]
 
-## =====================
-#        PART 3.2 b 
-## =====================
-
-# In oligopoly, only elements on diagonal of Δ are non-zero
-est = # preferred estimates 
-(ds_dp, shares) = ds_dp(est)
-Δ = zeros(J,J,M)
-for i in 1:J 
-    Δ[i,i,:] = -1 .* ds_dp[i,i,:]
-end
-
-# Compute marginal costs 
-mc = ones(J,M)
-for i in 1:M 
-    mc[:,i] = p3[:,i] - inv(Δ[:,:,i]) * shares[:,i]
-end
-
-# Compare with true marginal costs 
-
-## =====================
-#        PART 3.2 c 
-## =====================
 
 # Random draws of nu 
 Random.seed!(123)
@@ -92,8 +69,8 @@ function ds_dp(θ) # derivative of shares wrt prices
     share_R = exp.(delta_jm .+ σ .* p3 .* ν) ./ (1 .+ sum_exp) # (J x M x R)
     shares = (1/R) * sum(share_R, dims=3) # (J x M)
 
-    alpha = inv(X' * P_z * X) * (X' * P_z * δ)'
-    alpha = alpha[1]
+    alph = inv(X' * P_z * X) * (X' * P_z * δ)
+    alph = alph[1]
 
     ds_dp = ones(J,J,M)
     for i in 1:J 
@@ -108,6 +85,29 @@ function ds_dp(θ) # derivative of shares wrt prices
     return ds_dp, shares 
 
 end
+
+## =====================
+#        PART 3.2 b 
+## =====================
+
+# In oligopoly, only elements on diagonal of Δ are non-zero
+est = load("est.jld")["est"]
+(ds_dp, shares) = ds_dp(est)
+Δ = zeros(J,J,M)
+for i in 1:J 
+    Δ[i,i,:] = -1 .* ds_dp[i,i,:]
+end
+
+# Compute marginal costs 
+mc = ones(J,M)
+for i in 1:M 
+    mc[:,i] = p3[:,i] - inv(Δ[:,:,i]) * shares[:,i]
+end
+
+# Compare with true marginal costs 
+mc_true = reshape(2 + w3 + z3, J, M)
+
+## ======================
 
 function mkt_share(θ) # constraint 1: market shares
 

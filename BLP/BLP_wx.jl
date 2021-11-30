@@ -6,7 +6,7 @@
 #cd("/Users/johannarayl/Dropbox/Second Year/IO 1/PS4")
 cd("/home/jmr9694/IO1")
 
-using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots
+using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots, JLD 
 
 prod3 = matread("100markets3products.mat")
 
@@ -326,3 +326,6 @@ V = (inv(dg_dθ' * W * dg_dθ)) * (dg_dθ' * W * B * W * dg_dθ) * (inv(dg_dθ' 
 se = (1/ sqrt(J*M)) * hcat(sqrt(V[1,1]), sqrt(V[2,2]), sqrt(V[3,3]), sqrt(V[4,4]), sqrt(V[5,5]))
 
 print(se)
+
+# Save estimates 
+save("est.jld", "est", theta_2)
