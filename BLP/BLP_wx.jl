@@ -9,6 +9,7 @@ cd("/home/jmr9694/IO1")
 using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots, JLD, KernelDensity
 
 prod3 = matread("100markets3products.mat")
+#prod3 = matread("Simulation Data/100markets3products.mat")
 
 M = 100
 J = 3
@@ -330,7 +331,9 @@ print(se)
 # Save estimates 
 save("est_wx.jld", "est_wx", theta_2)
 
-##### Demand elasticities, profits, welfare ######
+# ========================================
+# Demand elasticities, profits, welfare 
+# ========================================
 
 function ds_dp(θ) # derivative of shares wrt prices 
 
@@ -361,11 +364,18 @@ function ds_dp(θ) # derivative of shares wrt prices
 end 
 
 # Elasticities 
-(dsdp, shares) = ds_dp(theta_2)
-dsdp = (1/M) * sum(dsdp, dims=3) # report average over all markets 
-print(dsdp)
+theta_2 = load("est_wx.jld")["est_wx"]
+coef_2 = vcat(inv(X' * P_z * X) * (X' * P_z * theta_2[1:J*M]), theta_2[end])
 
-# Profits 
+(dsdp, shares) = ds_dp(theta_2)
+dsdp_avg = (1/M) * sum(dsdp, dims=3) # report average over all markets 
+print(dsdp_avg)
+
+# True profits
+mc = 2 .+ w3 .+ z3 .+ eta3
+pi = (p3 .- reshape(mc, J, M)) .* shares3 # normalizing all markets to size 1
+
+# Estimated profits 
 Δ = zeros(J,J,M)
 for i in 1:J 
     Δ[i,i,:] = -1 .* dsdp[i,i,:]
@@ -376,26 +386,17 @@ for i in 1:M
     mc_est[:,i] = p3[:,i] - inv(Δ[:,:,i]) * shares[:,i]
 end
 
-pi_est = (p3 - mc) .* shares 
+pi_est = (p3 .- mc_est) .* shares 
+tot_pi_est = sum(pi_est, dims=2)
+tot_pi = sum(pi, dims=2)
 
-# True profits
-mc = 2 .+ w3 .+ z3 .+ eta3
-pi = (p3 - reshape(mc, J, M)) .* shares3 # normalizing all markets to size 1
-
-plot(range(extrema(pi)[1], extrema(pi)[2], length = 100),
-    z -> pdf(kde(pi[:]), z), label = "True")
-plot!(range(extrema(pi_est)[1], extrema(pi_est)[2], length = 100),
-    z -> pdf(kde(pi_est[:]), z), label = "True",
-    title = "Profits")
-savefig("profits_compare.pdf")
-
-# True CS
+# True CS 
 beta = [5,1,1]
 alpha_p = 1
 sigma = 1
 Random.seed!(123)
 eps = rand(GeneralizedExtremeValue(0,1,0), (J*M, R))
-nu = exp.(randn(M, R))
+nu = exp.(randn(M,R))
 nu = repeat(nu, inner = (J,1))
 U = x3 * beta - alpha_p .* reshape(p3, J*M, 1) .- sigma * nu .+ xi_all3 .+ eps
 U = reshape(U, J, M, R)
@@ -418,7 +419,7 @@ Utils = reshape(Utils, M*R)
 # CS 
 δ = theta_2[1:J*M]
 xi = (I - X * inv(X' * P_z * X) * (X' * P_z)) * δ
-U_est = x3 .* coef_2[2:4] .+ coef_2[1] * p_vec .+ coef_2[end] * nu .+ xi .+ eps 
+U_est = x3 * coef_2[2:4] .+ coef_2[1] * p_vec .+ coef_2[end] * nu .+ xi .+ eps 
 
 U_est = reshape(U_est, J, M, R)
 
@@ -443,5 +444,4 @@ plot(range(extrema(Utils)[1], extrema(Utils)[2], length = 100),
 plot!(range(extrema(Utils_est)[1], extrema(Utils_est)[2], length = 100),
     z -> pdf(kde(Utils_est[:]), z), label = "Estimated",
     title = "Welfare")
-savefig("welfare_compare.pdf")
-
+savefig("welfare_compare_wx.pdf")

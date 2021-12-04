@@ -9,7 +9,7 @@ cd("/home/jmr9694/IO1")
 using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots, KernelDensity, JLD 
 
 prod3 = matread("100markets3products.mat")
-#prod5 = matread("100markets5products.mat")
+prod5 = matread("100markets5products.mat")
 #prod310 = matread("10markets3products.mat")
 #prod3 = matread("Simulation Data/100markets3products.mat")
 #prod5 = matread("Simulation Data/100markets5products.mat")
@@ -27,14 +27,14 @@ xi_all3 = prod3["xi_all"]
 alphas3 = prod3["alphas"]
 eta3 = prod3["eta"]
 
-#Z5 = prod5["Z"]
-#shares5 = prod5["shares"]
-#x5 = prod5["x1"]
-#w5 = prod5["w"]
-#p5 = prod5["P_opt"]
-#xi_all5 = prod5["xi_all"]
-#alphas5 = prod5["alphas"]
-#eta5 = prod5["eta"]
+z5 = prod5["Z"]
+shares5 = prod5["shares"]
+x5 = prod5["x1"]
+w5 = prod5["w"]
+p5 = prod5["P_opt"]
+xi_all5 = prod5["xi_all"]
+alphas5 = prod5["alphas"]
+eta5 = prod5["eta"]
 
 ## =====================
 #        PART 1
@@ -54,7 +54,7 @@ savefig("prices.pdf")
 
 
 # Calculate profits
-mc = 2 .+ w3 .+ z3 .+ eta3
+mc = 2 .+ w3 .+ z3.+ eta3
 pi = (p3 - reshape(mc, J, M)) .* shares3 # normalizing all markets to size 1
 
 # Plot profits 
@@ -65,7 +65,7 @@ plot!(range(extrema(pi)[1], extrema(pi)[2], length = 100),
     z -> pdf(kde(pi[2,:]), z), label = "Product 2")
 
 plot!(range(extrema(pi)[1], extrema(pi)[2], length = 100),
-    z -> pdf(kde(pi[3,:]), z), label = "Product 3", 
+    z -> pdf(kde(pi[3,:]), z), label = "Product 3",
     title = "Profits - 3 products")
 savefig("profits.pdf")
 
@@ -73,7 +73,7 @@ savefig("profits.pdf")
 beta = [5,1,1]
 alpha_p = 1
 sigma = 1
-p = 1000 # 500 simulated people per market
+p = 1000 # 1000 simulated people per market
 Random.seed!(123)
 eps = rand(GeneralizedExtremeValue(0,1,0), (J*M, p))
 nu = exp.(randn(M,p))
@@ -459,9 +459,19 @@ function ds_dp(θ) # derivative of shares wrt prices
 end 
 
 # Elasticities 
+theta_2 = load("est_x.jld")["est_x"]
+coef_2 = vcat(inv(X' * P_z * X) * (X' * P_z * theta_2[1:J*M]), theta_2[end])
+
 (dsdp, shares) = ds_dp(theta_2)
-dsdp = (1/M) * sum(dsdp, dims=3) # report average over all markets 
-print(dsdp)
+dsdp_avg = (1/M) * sum(dsdp, dims=3) # report average over all markets 
+print(dsdp_avg)
+
+# True elasticities 
+delta_true = x3 * beta - p_vec + xi_all3
+theta_true = vcat(delta_true, ones(Q), -1)
+(dsdp_true, shares_true) = ds_dp(theta_true)
+dsdp_avg_true = (1/M) * sum(dsdp_true, dims=3) # report average over all markets 
+print(dsdp_avg_true)
 
 # Profits 
 Δ = zeros(J,J,M)
@@ -474,25 +484,21 @@ for i in 1:M
     mc_est[:,i] = p3[:,i] - inv(Δ[:,:,i]) * shares[:,i]
 end
 
-pi_est = (p3 - mc) .* shares 
-plot(range(extrema(pi)[1], extrema(pi)[2], length = 100),
-    z -> pdf(kde(pi[:]), z), label = "True")
-plot!(range(extrema(pi_est)[1], extrema(pi_est)[2], length = 100),
-    z -> pdf(kde(pi_est[:]), z), label = "True",
-    title = "Profits")
-savefig("profits_compare.pdf")
+pi_est = (p3 - mc_est) .* shares 
+tot_pi_est = sum(pi_est, dims=2)
+tot_pi = sum(pi, dims=2)
 
 # CS 
 δ = theta_2[1:J*M]
 xi = (I - X * inv(X' * P_z * X) * (X' * P_z)) * δ
-U_est = x3 .* coef_2[2:4] .+ coef_2[1] * p_vec .+ coef_2[end] * nu .+ xi .+ eps 
+U_est = x3 * coef_2[2:4] .+ coef_2[1] * p_vec .+ coef_2[end] * nu .+ xi .+ eps 
 
-U_est = reshape(U_est, J, M, p)
+U_est = reshape(U_est, J, M, R)
 
-choice = zeros(M, p)
-Utils_est = zeros(M, p)
+choice = zeros(M, R)
+Utils_est = zeros(M, R)
 for i in 1:M
-    for j in 1:p
+    for j in 1:R
         max = findmax(U_est[:,i,j])
         choice[i,j] = max[2] 
         Utils_est[i,j] = max[1]
@@ -502,7 +508,7 @@ for i in 1:M
     end
 end
 
-Utils_est = reshape(Utils_est, M*p)
+Utils_est = reshape(Utils_est, M*R)
 
 # Plot welfare 
 plot(range(extrema(Utils)[1], extrema(Utils)[2], length = 100),
