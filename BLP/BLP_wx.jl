@@ -328,4 +328,4 @@ se = (1/ sqrt(J*M)) * hcat(sqrt(V[1,1]), sqrt(V[2,2]), sqrt(V[3,3]), sqrt(V[4,4]
 print(se)
 
 # Save estimates 
-save("est.jld", "est", theta_2)
+save("est_wx.jld", "est_wx", theta_2)

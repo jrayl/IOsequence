@@ -93,7 +93,7 @@ end
 
 # In oligopoly, only elements on diagonal of Δ are non-zero
 est = load("est.jld")["est"]
-est = ones(J*M+Q+1)
+#est = ones(J*M+Q+1)
 (dsdp, shares) = ds_dp(est)
 Δ = zeros(J,J,M)
 for i in 1:J 
@@ -108,6 +108,15 @@ end
 
 # Compare with true marginal costs 
 mc_true = reshape(2 .+ w3 + z3 + eta3, J, M)
+
+# Plot two distributions 
+plot(range(extrema(mc)[1], extrema(mc)[2], length = 100),
+    z -> pdf(kde(mc[:]), z), label = "Estimated")
+
+plot!(range(extrema(mc_true)[1], extrema(mc_true)[2], length = 100),
+    z -> pdf(kde(mc_true[:]), z), label = "True", 
+    title = "Marginal Costs")
+savefig("mc.pdf")
 
 ## ======================
 
