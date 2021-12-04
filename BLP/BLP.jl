@@ -3,16 +3,16 @@
 # Johanna Rayl
 ##########################################################
 
-cd("/Users/johannarayl/Dropbox/Second Year/IO 1/PS4")
-#cd("/home/jmr9694/IO1")
+#cd("/Users/johannarayl/Dropbox/Second Year/IO 1/PS4")
+cd("/home/jmr9694/IO1")
 
-using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots, KernelDensity
+using MAT, DataFrames, LinearAlgebra, KNITRO, Random, Distributions, Plots, KernelDensity, JLD 
 
-#prod3 = matread("10markets3products.mat")
+prod3 = matread("100markets3products.mat")
 #prod5 = matread("100markets5products.mat")
 #prod310 = matread("10markets3products.mat")
-prod3 = matread("Simulation Data/100markets3products.mat")
-prod5 = matread("Simulation Data/100markets5products.mat")
+#prod3 = matread("Simulation Data/100markets3products.mat")
+#prod5 = matread("Simulation Data/100markets5products.mat")
 
 M = 100 # for estimation
 J = 3
@@ -27,14 +27,14 @@ xi_all3 = prod3["xi_all"]
 alphas3 = prod3["alphas"]
 eta3 = prod3["eta"]
 
-Z5 = prod5["Z"]
-shares5 = prod5["shares"]
-x5 = prod5["x1"]
-w5 = prod5["w"]
-p5 = prod5["P_opt"]
-xi_all5 = prod5["xi_all"]
-alphas5 = prod5["alphas"]
-eta5 = prod5["eta"]
+#Z5 = prod5["Z"]
+#shares5 = prod5["shares"]
+#x5 = prod5["x1"]
+#w5 = prod5["w"]
+#p5 = prod5["P_opt"]
+#xi_all5 = prod5["xi_all"]
+#alphas5 = prod5["alphas"]
+#eta5 = prod5["eta"]
 
 ## =====================
 #        PART 1
@@ -49,7 +49,7 @@ plot!(range(extrema(p3)[1], extrema(p3)[2], length = 100),
 
 plot!(range(extrema(p3)[1], extrema(p3)[2], length = 100),
     z -> pdf(kde(p3[3,:]), z), label = "Product 3", 
-    title = "Prices")
+    title = "Prices - 3 Products")
 savefig("prices.pdf")
 
 
@@ -66,7 +66,7 @@ plot!(range(extrema(pi)[1], extrema(pi)[2], length = 100),
 
 plot!(range(extrema(pi)[1], extrema(pi)[2], length = 100),
     z -> pdf(kde(pi[3,:]), z), label = "Product 3", 
-    title = "Profits")
+    title = "Profits - 3 products")
 savefig("profits.pdf")
 
 # Calculate welfare
@@ -99,7 +99,7 @@ Utils = reshape(Utils, M*p)
 # Plot welfare 
 plot(range(extrema(Utils)[1], extrema(Utils)[2], length = 100),
     z -> pdf(kde(Utils[:]), z), label = "",
-    title = "Welfare")
+    title = "Welfare - 3 Products")
 savefig("welfare.pdf")
 
 ## =====================
@@ -426,7 +426,9 @@ print(se)
 
 save("est_x.jld", "est_x", theta_2)
 
-##### Demand elasticities, profits, welfare ######
+# ========================================
+# Demand elasticities, profits, welfare 
+# ========================================
 
 function ds_dp(θ) # derivative of shares wrt prices 
 
